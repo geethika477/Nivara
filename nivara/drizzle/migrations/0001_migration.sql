@@ -1,0 +1,12 @@
+CREATE TABLE public.zone_updates (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), area text NOT NULL, team text NOT NULL DEFAULT '', status text NOT NULL DEFAULT 'evacuated', note text NOT NULL DEFAULT '', created_at timestamptz NOT NULL DEFAULT now());
+CREATE TABLE public.drain_reports (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), lat double precision NOT NULL, lon double precision NOT NULL, area text NOT NULL DEFAULT '', team text NOT NULL DEFAULT '', status text NOT NULL DEFAULT 'open', created_at timestamptz NOT NULL DEFAULT now());
+GRANT SELECT, INSERT, UPDATE ON public.zone_updates, public.drain_reports TO anon, authenticated;
+GRANT ALL ON public.zone_updates, public.drain_reports TO service_role;
+ALTER TABLE public.zone_updates ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.drain_reports ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "read zone updates" ON public.zone_updates FOR SELECT TO anon, authenticated USING (true);
+CREATE POLICY "post zone updates" ON public.zone_updates FOR INSERT TO anon, authenticated WITH CHECK (status IN ('evacuated','not_evacuated','in_progress'));
+CREATE POLICY "read drains" ON public.drain_reports FOR SELECT TO anon, authenticated USING (true);
+CREATE POLICY "report drain" ON public.drain_reports FOR INSERT TO anon, authenticated WITH CHECK (status = 'open');
+CREATE POLICY "update drain" ON public.drain_reports FOR UPDATE TO anon, authenticated USING (true) WITH CHECK (status IN ('open','assigned','cleared'));
+ALTER PUBLICATION supabase_realtime ADD TABLE public.zone_updates, public.drain_reports;
